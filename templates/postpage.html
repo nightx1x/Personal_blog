@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <style>
+        body {
+            font-family: "Comic Sans MS", sans-serif;
+            background-color: #f9f9f9;
+            margin: 20px;
+            padding: 0;
+        }
+
+        .post-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .post-date {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .post-content {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .back-home {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            height: 100vh;
+            text-align: center;
+        }
+        .back-home a{
+            text-decoration: none;
+            color: #333333;
+        }
+
+
+    </style>
+</head>
+<body>
+<div class="post-container">
+    <h1 class="post-title">{{.Title}}</h1>
+    <p class="post-date">{{.Date}}</p>
+    <div class="post-content">
+        {{.Content}}
+    </div>
+</div>
+<div class="back-home">
+    <a href="/home">back to home</a>
+</div>
+</body>
+</html>
