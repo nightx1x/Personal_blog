@@ -22,30 +22,18 @@ func init() {
 
 func main() {
 
-	http.HandleFunc("/posts", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			api.GetPostsApi(w, r)
-		case http.MethodPost:
-			api.CreatePostWithAuthI()(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})
-	http.HandleFunc("/posts/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			api.GetPostApi(w, r)
-		case http.MethodPut:
-			api.UpdatePostWithAuthI()(w, r)
-		case http.MethodDelete:
-			api.DeletePostWithAuthI()(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	http.HandleFunc("/", api.HomeHandler)
+	http.HandleFunc("/post/", api.PostHandler)
+
+	http.HandleFunc("/dashboard", api.DashboardWithAuth())
+	http.HandleFunc("/new", api.CreatePostWithAuthI())
+	http.HandleFunc("/edit/", api.UpdatePostWithAuthI())
+	http.HandleFunc("/delete/", api.DeletePostWithAuthI())
+
+	http.HandleFunc("/logout", api.LogoutHandler)
+
 	http.HandleFunc("/login", api.LoginHandler)
-	fmt.Println("Server started at :8080")
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Server started at :8081")
+	http.ListenAndServe(":8081", nil)
 
 }

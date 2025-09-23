@@ -7,3 +7,8 @@ type Posts struct {
 	Date    string `json:"date" validate:"required"`
 	Author  string `json:"author,omitempty"`
 }
+
+type PostRepository interface {
+	Save(post Posts) error
+	FindByID(id int) (Posts, error)
+}

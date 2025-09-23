@@ -1,70 +1,28 @@
-package api
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"myblog/middleware"
 	"myblog/model"
+	"myblog/validator"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
-	"text/template"
-	"time"
+	"strings"
 )
 
-func CreatePostAPI(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/newPost.html")
+func parseTemplate(templateName string) *template.Template {
+	tmpl, err := template.ParseFiles(fmt.Sprintf("templates/%s", templateName))
 	if err != nil {
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
-		return
+		panic(fmt.Sprintf("Error parsing template %s, %v", templateName, err))
 	}
-	user := middleware.GetUserFromContext(r)
-	if user == nil {
-		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-		return
-	}
-
-	var a model.Posts
-
-	if err := json.NewDecoder(r.Body).Decode(&a); err != nil {
-		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
-		return
-	}
-
-	if a.Title == "" || len(a.Title) > 200 {
-		http.Error(w, `{"error":"Title is required and must be less than 200 characters"}`, http.StatusBadRequest)
-		return
-	}
-	if a.Content == "" {
-		http.Error(w, `{"error":"Content is required"}`, http.StatusBadRequest)
-		return
-	}
-	if _, err := time.Parse("2006-01-02", a.Date); err != nil {
-		http.Error(w, `{"error":"Date must be in YYYY-MM-DD format"}`, http.StatusBadRequest)
-		return
-	}
-
-	a.Author = user.Username
-
-	files, _ := os.ReadDir("posts")
-	a.ID = len(files) + 1
-
-	filePath := fmt.Sprintf("posts/posts%d.json", a.ID)
-	file, _ := os.Create(filePath)
-	defer file.Close()
-	json.NewEncoder(file).Encode(a)
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(a)
-	tmpl.Execute(w, a)
+	return tmpl
 }
 
-func GetPostsApi(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/home.html")
-	if err != nil {
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
-		return
-	}
+func getPost() []model.Posts {
 	files, _ := os.ReadDir("posts")
 	var posts []model.Posts
 
@@ -79,67 +37,134 @@ func GetPostsApi(w http.ResponseWriter, r *http.Request) {
 		posts = append(posts, pos)
 	}
 
-	json.NewEncoder(w).Encode(posts)
-	tmpl.Execute(w, posts)
+	return posts
+	// json.NewEncoder(w).Encode(posts)
 }
 
-func GetPostApi(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/post.html")
-	if err != nil {
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
-		return
-	}
-	idStr := r.URL.Path[len("/posts/"):]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, `{"error":"invalid post ID"}`, http.StatusBadRequest)
-		return
-	}
+func getPostbyID(id int) *model.Posts {
+
 	filepath := fmt.Sprintf("posts/posts%d.json", id)
 	data, err := os.ReadFile(filepath)
 	if err != nil {
-		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-		return
+		return nil
 	}
 
 	var a model.Posts
 	json.Unmarshal(data, &a)
-	json.NewEncoder(w).Encode(a)
-	tmpl.Execute(w, a)
+
+	return &a
 
 }
-func DeletePostAPI(w http.ResponseWriter, r *http.Request) {
+
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	posts := getPost()
+	tmpl := parseTemplate("home.html")
+	tmpl.Execute(w, posts)
+}
+
+func PostHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Path[len("/posts/"):]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, `{"error":"invalid post ID"}`, http.StatusBadRequest)
 		return
 	}
-	filepath := fmt.Sprintf("posts/posts%d.json", id)
-	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		http.Error(w, `{"error":"post not found"}`, http.StatusNotFound)
+
+	post := getPostbyID(id)
+	if post == nil {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		return
 	}
+	tmpl := parseTemplate("postpage.html")
+	tmpl.Execute(w, post)
+
 }
 
-func UpdatePostApi(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/updatePost.html")
-	if err != nil {
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+func DashBoardHandler(w http.ResponseWriter, r *http.Request) {
+	posts := getPost()
+	tmpl := parseTemplate("dashboard.html")
+	tmpl.Execute(w, posts)
+	return
+}
+
+func NewHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		tmpl := parseTemplate("newPost.html")
+		tmpl.Execute(w, nil)
 		return
 	}
-	idStr := r.URL.Path[len("/posts/"):]
+
+	user := middleware.GetUserFromContext(r)
+	if user == nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	title := r.FormValue("title")
+	content := r.FormValue("content")
+	date := r.FormValue("date")
+
+	if err := validator.ValidatePost(title, content, date); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	//Create
+	files, _ := os.ReadDir("posts")
+
+	var a model.Posts
+	a.Title = title
+	a.Content = content
+	a.Date = date
+	a.Author = user.Username
+	a.ID = len(files) + 1
+
+	filePath := fmt.Sprintf("posts/posts%d.json", a.ID)
+	file, _ := os.Create(filePath)
+	defer file.Close()
+	json.NewEncoder(file).Encode(a)
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+func EditHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/edit/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, `{"error":"invalid post ID"}`, http.StatusBadRequest)
+		return
+	}
+
+	if r.Method == "GET" {
+		post := getPostbyID(id)
+		if post != nil {
+			http.Error(w, `{"error":"post not found"}`, http.StatusNotFound)
+			return
+		}
+		tmpl := parseTemplate("updatePost.html")
+		tmpl.Execute(w, post)
+		return
+	}
+
+	user := middleware.GetUserFromContext(r)
+	if user == nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	title := r.FormValue("title")
+	content := r.FormValue("content")
+	date := r.FormValue("date")
+
+	if err := validator.ValidatePost(title, content, date); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	var a model.Posts
-	if err := json.NewDecoder(r.Body).Decode(&a); err != nil {
-		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
-		return
-	}
+	a.Title = title
+	a.Content = content
+	a.Date = date
+	a.Author = user.Username
 	a.ID = id
 
 	filePath := fmt.Sprintf("posts/posts%d.json", a.ID)
@@ -150,21 +175,34 @@ func UpdatePostApi(w http.ResponseWriter, r *http.Request) {
 	file, _ := os.Create(filePath)
 	defer file.Close()
 	json.NewEncoder(file).Encode(a)
-	json.NewEncoder(w).Encode(a)
-	tmpl.Execute(w, a)
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+func DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/delete/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid post ID"}`, http.StatusBadRequest)
+		return
+	}
+	filepath := fmt.Sprintf("posts/posts%d.json", id)
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		http.Error(w, `{"error":"post not found"}`, http.StatusNotFound)
+		return
+	}
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+
 }
 
 func CreatePostWithAuthI() http.HandlerFunc {
-	return middleware.JWTMiddleware(CreatePostAPI)
+	return middleware.CookieAuthMidleware(NewHandler)
 }
 func DeletePostWithAuthI() http.HandlerFunc {
-	return middleware.JWTMiddleware(DeletePostAPI)
+	return middleware.CookieAuthMidleware(DeleteHandler)
 }
 func UpdatePostWithAuthI() http.HandlerFunc {
-	return middleware.JWTMiddleware(UpdatePostApi)
+	return middleware.CookieAuthMidleware(EditHandler)
 }
-
-// Доробити - валідація
-// Доробити GetPostApi
-// Доробити DeletePostAPI
-// Доробити UpdatePostApi
+func DashboardWithAuth() http.HandlerFunc {
+	return middleware.CookieAuthMidleware(DashBoardHandler)
+}

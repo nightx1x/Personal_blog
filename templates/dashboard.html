@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,75 +8,167 @@
     <style>
         body {
             font-family: "Comic Sans MS", sans-serif;
-            background-color: #f9f9f9;
+            background-color: #2c2c2c;
             margin: 20px;
             padding: 0;
         }
 
-        .article-container {
+        .post-container {
             max-width: 600px;
             margin: 0 auto;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 10px;
+            background: #2a2b38;
+            border-radius: 12px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .article-title {
+        .post-title {
             font-size: 24px;
+            color: white;
             font-weight: bold;
             margin-bottom: 10px;
+            text-shadow : 8px 10px 15px rgba(0, 0, 0, 0.5);
         }
 
-        .article-date {
+        .post-date {
             font-size: 14px;
             color: #aaa;
             margin-bottom: 20px;
         }
 
-        .article-content {
+        .post-content {
             font-size: 16px;
             line-height: 1.6;
-            color: #333;
+            color: white;
         }
 
         .head-container {
             display: flex;
-            justify-content: space-between; /* Розміщення заголовка зліва і кнопки справа */
-            align-items: center; /* Вирівнювання по вертикалі */
-            max-width: 600px; /* Щоб контейнер не займав більше місця, ніж потрібно */
+            justify-content: space-between;
+            align-items: center;
+            max-width: 600px;
+
             margin: 0 auto;
         }
+        .plusButton {
+            --plus_sideLength: 2rem;
+            --plus_topRightTriangleSideLength: 0.5rem;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+            width: var(--plus_sideLength);
+            height: var(--plus_sideLength);
+            background-color: #ffeba7;
+            overflow: hidden;
+            border-radius: 4px;
+        }
 
-        .buttonNew{
-            align-content: space-around;
+        .plusButton::before {
+            position: absolute;
+            content: "";
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-width: 0 var(--plus_topRightTriangleSideLength) var(--plus_topRightTriangleSideLength) 0;
+            border-style: solid;
+            border-color: transparent #5e6681 transparent transparent;
+            transition-timing-function: ease-in-out;
+            transition-duration: 0.2s;
         }
-        button {
-            height: 30px;
+
+        .plusButton:hover {
+            cursor: pointer;
         }
+
+        .plusButton:hover::before {
+            --plus_topRightTriangleSideLength: calc(var(--plus_sideLength) * 2);
+        }
+
+        .plusButton:focus-visible::before {
+            --plus_topRightTriangleSideLength: calc(var(--plus_sideLength) * 2);
+        }
+
+        .plusButton>.plusIcon {
+            fill: #5e6681;
+            width: calc(var(--plus_sideLength) * 0.7);
+            height: calc(var(--plus_sideLength) * 0.7);
+            z-index: 1;
+            transition-timing-function: ease-in-out;
+            transition-duration: 0.2s;
+        }
+
+        .plusButton:hover>.plusIcon {
+            fill: #ffeba7;
+            transform: rotate(180deg);
+        }
+
+        .plusButton:focus-visible>.plusIcon {
+            fill: #ffeba7;
+            transform: rotate(180deg);
+        }
+
+        .btn {
+        margin: 0.5rem;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: .8em;
+        text-transform: uppercase;
+        padding: 0.6em 1.2em;
+        background-color: #ffeba7;
+        color: #5e6681;
+        box-shadow: 0 8px 24px 0 rgb(255 235 167 / 20%);
+        transition: all .3s ease-in-out;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px 0 rgb(255 235 167 / 30%);
+    }
+
+    .btn-delete {
+        background-color: #e74c3c;
+        color: #fff;
+        box-shadow: 0 8px 24px 0 rgb(231 76 60 / 30%);
+    }
+
+    .btn-delete:hover {
+        background-color: #c0392b;
+        box-shadow: 0 12px 32px 0 rgb(231 76 60 / 40%);
+    }
     </style>
 </head>
+
 <body>
-<div class="head-container">
-    <h1 class="article-title">Dashboard</h1>
-    <div class="buttonNew">
-        <button onclick="window.location.href='/new'">+ Add</button>
+    <div class="head-container">
+        <h1 class="post-title">Dashboard</h1>
+        <div tabindex="0" class="plusButton">
+            <svg onclick="window.location.href='/new'" class="plusIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
+                <g mask="url(#mask0_21_345)">
+                    <path d="M13.75 23.75V16.25H6.25V13.75H13.75V6.25H16.25V13.75H23.75V16.25H16.25V23.75H13.75Z">
+                    </path>
+                </g>
+            </svg>
+        </div>
     </div>
-</div>
 
 
-{{range .}}
-<div class="article-container">
-    <h1 class="article-title">{{.Title}}</h1>
-    <p class="article-date">{{.Date}}</p>
-    <div class="article-content">
-        {{.Content}}
+    {{range .}}
+    <div class="post-container">
+        <h1 class="post-title">{{.Title}}</h1>
+        <p class="post-date">{{.Date}}</p>
+        <div class="post-content">
+            {{.Content}}
+        </div>
+        <button class="btn" onclick="window.location.href='/edit/{{.ID}}'">Edit</button>
+        <button class="btn btn-delete" onclick="window.location.href='/delete/{{.ID}}'">Delete</button>
     </div>
-    <button onclick="window.location.href='/edit/{{.ID}}'">Edit</button>
-    <button onclick="window.location.href='/delete/{{.ID}}'">Delete</button>
-</div>
-{{end}}
+    {{end}}
 
 </body>
+
 </html>
