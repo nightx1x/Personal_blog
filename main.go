@@ -33,7 +33,7 @@ func main() {
 	http.HandleFunc("/logout", api.LogoutHandler)
 
 	http.HandleFunc("/login", api.LoginHandler)
-	fmt.Println("Server started at :8081")
-	http.ListenAndServe(":8081", nil)
+	fmt.Println("Server started at :8083")
+	http.ListenAndServe(":8083", nil)
 
 }

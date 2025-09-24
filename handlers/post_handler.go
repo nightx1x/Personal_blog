@@ -27,7 +27,7 @@ func getPost() []model.Posts {
 	var posts []model.Posts
 
 	for _, f := range files {
-		if filepath.Ext(f.Name()) == ".json" {
+		if filepath.Ext(f.Name()) != ".json" {
 			continue
 		}
 
@@ -63,7 +63,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Path[len("/posts/"):]
+	idStr := r.URL.Path[len("/post/"):]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, `{"error":"invalid post ID"}`, http.StatusBadRequest)
@@ -136,7 +136,7 @@ func EditHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "GET" {
 		post := getPostbyID(id)
-		if post != nil {
+		if post == nil {
 			http.Error(w, `{"error":"post not found"}`, http.StatusNotFound)
 			return
 		}
@@ -190,6 +190,13 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"post not found"}`, http.StatusNotFound)
 		return
 	}
+
+	err = os.Remove(filepath)
+	if err != nil {
+		http.Error(w, `{"error":"failed to delete post"}`, http.StatusInternalServerError)
+		return
+	}
+
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 
 }
